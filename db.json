@@ -1,0 +1,22 @@
+{
+  "voices": [
+    { "id": 1, "label": "Voice 1" },
+    { "id": 2, "label": "Voice 2" },
+    { "id": 3, "label": "Voice 3" }
+  ],
+  "texts": [
+    { "id": 1, "label": "Text 1" },
+    { "id": 2, "label": "Text 2" },
+    { "id": 3, "label": "Text 3" }
+  ],
+  "images": [
+    { "id": 1, "label": "Image 1" },
+    { "id": 2, "label": "Image 2" },
+    { "id": 3, "label": "Image 3" }
+  ],
+  "videos": [
+    { "id": 1, "label": "Video 1" },
+    { "id": 2, "label": "Video 2" },
+    { "id": 3, "label": "Video 3" }
+  ]
+}
