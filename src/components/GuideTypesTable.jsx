@@ -2,8 +2,10 @@
 import React, { useEffect, useState } from "react";
 import { Table, Button, Form, InputGroup, FormControl, Spinner } from "react-bootstrap";
 import api from "../api/axios"; // فرض بر اینه که baseURL درست تنظیم شده
+import { emit } from "../eventBus";
 
 export default function GuideTypesTable() {
+  const [isOpen,setIsOpen]=useState(false);
   const [guideTypes, setGuideTypes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState("");
@@ -63,6 +65,7 @@ export default function GuideTypesTable() {
       await api.post("guideCategory", { name: name });
       await fetchGuideTypes();
       setNewName("");
+      emit("guideTypeCreated");
     } catch (err) {
       console.error(err);
       setCreateError("خطا در ایجاد نوع راهنما.");
@@ -102,11 +105,10 @@ export default function GuideTypesTable() {
       await api.post("guideCategory/edit", { id, name: name });
       await fetchGuideTypes();
       cancelEdit();
+      emit("guideTypeCreated");
     } catch (err) {
       console.error(err);
       setEditError("خطا در ویرایش نوع راهنما.");
-    } finally {
-      setEditLoading(false);
     }
   };
 
@@ -132,8 +134,12 @@ export default function GuideTypesTable() {
   );
 
   return (
-    <div className="container mt-3">
-      <h4 className="mb-3">ایجاد نوع راهنمای جدید</h4>
+    <div className="container mt-2">
+      <button className="btn btn-dark w-100 text-end" onClick={()=>{isOpen ? setIsOpen(false) : setIsOpen(true)}}>دسته‌بندی فایل‌ها</button>
+      {/* <h4 className="mb-3">ایجاد نوع راهنمای جدید</h4> */}
+        {isOpen ?
+      <div className="bg-light p-3 border rounded border-secondary mt-2">
+      
       <Form onSubmit={handleCreate}>
         <InputGroup className="mb-3" style={{ maxWidth: 400 }}>
           <FormControl
@@ -142,7 +148,7 @@ export default function GuideTypesTable() {
             onChange={(e) => setNewName(e.target.value)}
           />
           <Button variant="success" type="submit" disabled={createLoading}>
-            {createLoading ? <Spinner animation="border" size="sm" /> : "ثبت"}
+            ثبت
           </Button>
         </InputGroup>
         {createError && <div className="text-danger mb-2">{createError}</div>}
@@ -159,13 +165,7 @@ export default function GuideTypesTable() {
         />
       </div>
 
-      {loading ? (
-        <div className="text-center my-4">
-          <Spinner animation="border" />
-        </div>
-      ) : fetchError ? (
-        <div className="alert alert-danger">{fetchError}</div>
-      ) : (
+      
         <Table striped bordered hover responsive>
           <thead>
             <tr>
@@ -207,9 +207,8 @@ export default function GuideTypesTable() {
                           variant="primary"
                           className="me-2"
                           onClick={() => handleEditSubmit(g.id)}
-                          disabled={editLoading}
                         >
-                          {editLoading ? <Spinner animation="border" size="sm" /> : "ذخیره"}
+                          ذخیره
                         </Button>
                         <Button size="sm" variant="secondary" onClick={cancelEdit}>انصراف</Button>
                       </>
@@ -231,7 +230,10 @@ export default function GuideTypesTable() {
             )}
           </tbody>
         </Table>
-      )}
+      )
+      </div>
+        :
+        ""}
     </div>
   );
 }

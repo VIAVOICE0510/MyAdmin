@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Table, Button, Form, InputGroup, FormControl, Spinner, Collapse } from "react-bootstrap";
 import api from "../api/axios"; // فرض بر اینه baseURL درست تنظیم شده
+import { emit, subscribe } from "../eventBus";
 
 export default function GuideManager() {
+  const[isOpen,setIsOpen]=useState()
   const [guides, setGuides] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -12,7 +14,6 @@ export default function GuideManager() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [files, setFiles] = useState([]); // تغییر به آرایه برای چند فایل
   const [createError, setCreateError] = useState("");
-  const [createLoading, setCreateLoading] = useState(false);
   const fileInputRef = useRef(null);
 
   // جستجو
@@ -21,10 +22,17 @@ export default function GuideManager() {
   // کنترل باز/بسته بودن گروه‌ها
   const [openCategories, setOpenCategories] = useState({});
 
-  useEffect(() => {
-    fetchGuides();
-    fetchCategories();
-  }, []);
+useEffect(() => {
+      fetchCategories(); // جدول دسته‌بندی‌ها آپدیت بشه
+    fetchGuides();     // جدول راهنماها هم آپدیت بشه
+
+  const unsubscribe = subscribe("guideTypeCreated", () => {
+    fetchCategories(); // جدول دسته‌بندی‌ها آپدیت بشه
+    fetchGuides();     // جدول راهنماها هم آپدیت بشه
+  });
+
+  return () => unsubscribe(); // پاکسازی هنگام unmount
+}, []);
 
   const fetchGuides = async () => {
     setLoading(true);
@@ -67,21 +75,19 @@ export default function GuideManager() {
   formData.append("GuideCategoryId", selectedCategory);
   files.forEach(file => formData.append("Addresses", file)); // اضافه کردن همه فایل‌ها
 
-  setCreateLoading(true);
   try {
     await api.post("guide", formData, {
       headers: { "Content-Type": "multipart/form-data" }
     });
-
     setSelectedCategory("");
     setFiles([]);
     if (fileInputRef.current) fileInputRef.current.value = "";
     await fetchGuides();
+    emit("fileUpdated");
   } catch (err) {
     console.error(err);
     setCreateError("خطا در ایجاد فایل‌ها.");
   } finally {
-    setCreateLoading(false);
   }
 };
 
@@ -121,9 +127,11 @@ export default function GuideManager() {
   };
 
   return (
-    <div className="container mt-3">
-      <h4 className="mb-3">ایجاد فایل راهنما</h4>
-      <Form onSubmit={handleCreate}>
+    <div className="container mt-2">
+      <button className="btn btn-dark text-end w-100" onClick={()=>{isOpen ? setIsOpen(false) : setIsOpen(true)}}>مدیریت فایل‌ها</button>
+      {isOpen ?
+          <div className="mt-2 border rounded border-secondary bg-light p-2">
+              <Form onSubmit={handleCreate}>
         <InputGroup className="mb-2" style={{ maxWidth: 500 }}>
           <Form.Select
             value={selectedCategory}
@@ -145,9 +153,7 @@ export default function GuideManager() {
           />
         </InputGroup>
         {createError && <div className="text-danger mb-2">{createError}</div>}
-        <Button variant="success" type="submit" disabled={createLoading}>
-          {createLoading ? <Spinner animation="border" size="sm" /> : "ثبت"}
-        </Button>
+        <Button variant="success" type="submit" >ثبت</Button>
       </Form>
 
       <hr />
@@ -198,7 +204,8 @@ export default function GuideManager() {
                           <td>
                             {g.address ? (
                               <audio controls style={{ width: 200 }}>
-                                <source src={`https://localhost:7291/${g.address}`} type="audio/mpeg" />
+                                <source src={`https://totivar.com/${g.address}`} type="audio/mpeg" />
+                                {/* <source src={`https://localhost:7291/${g.address}`} type="audio/mpeg" /> */}
                                 مرورگر شما از پخش فایل صوتی پشتیبانی نمی‌کند.
                               </audio>
                             ) : (
@@ -226,6 +233,11 @@ export default function GuideManager() {
           ))
         )
       )}
+      </div>
+      :""  
+    }
+
+
     </div>
   );
 }

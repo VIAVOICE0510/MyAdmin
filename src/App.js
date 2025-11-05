@@ -1,8 +1,21 @@
 import React from 'react'
 import Layout from './components/Layout'
+import AdvanceCategory from './components/AdvanceCategory'
+import SentencesTable from './components/SentencesTable'
+import CategoriesManager from './components/CategoriesTable'
+import GuideManager from './components/GuidesTable'
+import GuideTypesTable from './components/GuideTypesTable'
+import Ravand from './components/Ravand'
 
 export default function App() {
   return (
-    <Layout/>
+    // <Layout/>
+    <>
+    <AdvanceCategory/>
+    <SentencesTable/>
+    <GuideTypesTable/>
+    <GuideManager/>
+    <Ravand/>
+    </>
   )
 }

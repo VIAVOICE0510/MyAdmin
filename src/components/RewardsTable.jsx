@@ -146,7 +146,8 @@ export default function RewardsTable() {
                 <td>
                   {r.rewardAddress ? (
                     <audio controls style={{ width: 200 }}>
-                      <source src={`https://localhost:7291/${r.rewardAddress}`} type="audio/mpeg" />
+                      <source src={`https://totivar.com/${r.rewardAddress}`} type="audio/mpeg" />
+                      {/* <source src={`https://localhost:7291/${r.rewardAddress}`} type="audio/mpeg" /> */}
                       مرورگر شما از پخش فایل پشتیبانی نمی‌کند.
                     </audio>
                   ) : "-"}
