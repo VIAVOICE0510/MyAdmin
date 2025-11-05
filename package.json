@@ -17,6 +17,8 @@
     "react-bootstrap": "^2.10.10",
     "react-dom": "^19.1.1",
     "react-scripts": "5.0.1",
+    "vis-data": "^8.0.3",
+    "vis-timeline": "^8.3.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -26,7 +28,6 @@
     "eject": "react-scripts eject",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build"
-
   },
   "eslintConfig": {
     "extends": [

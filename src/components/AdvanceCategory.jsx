@@ -74,14 +74,6 @@ export default function AdvanceCategoryDropdown() {
           selectedItems.Need[0].title,
         ].join(" - "),
       };
-    // // 🟢 مرحله بررسی قبل از ارسال
-    // console.log("🚀 Payload for API:", payload);
-
-    // // بررسی دقیق‌تر برای null یا undefined
-    // Object.entries(payload).forEach(([key, value]) => {
-    //   if (value === null || value === undefined)
-    //     console.warn(`⚠️ مقدار ${key} برابر با ${value} است`);
-    // });
       if (editingId) {
         await api.post("AdvanceCategory/edit", { ...payload, id: editingId });
         setEditingId(null);
