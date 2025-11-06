@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from "react";
 import api from "../api/axios";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css"; // ✅ برای آیکون‌های زیبا
 import { subscribe } from "../eventBus";
 
-const ItemList = ({ title, items, onDragItem }) => {
+// ---------------------------
+// ✅ کامپوننت سمت چپ (لیست گروه‌ها)
+// ---------------------------
+const ItemList = ({ title, items, onDragGroup }) => {
+  const [openGroups, setOpenGroups] = useState({}); // وضعیت باز/بسته بودن گروه‌ها
+
   const groupedItems = items.reduce((acc, item) => {
     const groupName =
       item.guideCategoryName || item.advanceCategoryTitle || "بدون دسته";
@@ -12,60 +18,76 @@ const ItemList = ({ title, items, onDragItem }) => {
     return acc;
   }, {});
 
+  const toggleGroup = (groupName) => {
+    setOpenGroups((prev) => ({
+      ...prev,
+      [groupName]: !prev[groupName],
+    }));
+  };
+
   return (
     <div className="mb-3">
-      <h5>{title}</h5>
-      {Object.keys(groupedItems).map((group) => (
-        <div key={group} className="mb-2 border rounded p-1 bg-light">
+      <h5 className="fw-bold">{title}</h5>
+      {Object.keys(groupedItems).map((group) => {
+        const isOpen = openGroups[group] || false;
+        return (
           <div
-            style={{ cursor: "pointer" }}
+            key={group}
+            className="mb-2 border rounded p-2 bg-light"
             draggable
-            onDragStart={(e) => onDragItem(groupedItems[group], title, e)}
+            onDragStart={(e) => onDragGroup(group, groupedItems[group], title, e)}
+            style={{ cursor: "grab" }}
           >
-            <strong>{group}</strong>{" "}
-            <span className="badge bg-secondary ms-2">
-              {groupedItems[group].length}
-            </span>
-          </div>
+            {/* سربرگ گروه */}
+            <div
+              className="d-flex justify-content-between align-items-center"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleGroup(group);
+              }}
+              style={{ cursor: "pointer" }}
+            >
+              <strong>
+                <i
+                  className={`bi ${
+                    isOpen ? "bi-chevron-down" : "bi-chevron-right"
+                  } me-1`}
+                ></i>
+                {group}
+              </strong>
+              <span className="badge bg-secondary">
+                {groupedItems[group].length}
+              </span>
+            </div>
 
-          <ul className="list-group mt-1">
-            {groupedItems[group].map((item) => (
-              <li
-                key={item.id}
-                className="list-group-item d-flex justify-content-between align-items-center"
-                draggable
-                onDragStart={(e) => onDragItem([item], title, e)}
-              >
-                <span>
-                  {item.text ||
-                    item.guideCategoryName ||
-                    item.rewardCategoryName ||
-                    "بدون عنوان"}
-                </span>
-                {(item.address || item.voiceAddress) && (
-                  <audio controls style={{ height: "30px", width: "160px" }}>
-                    <source
-                      src={`https://totivar.com/${
-                        item.address || item.voiceAddress
-                      }`}
-                      type="audio/mpeg"
-                    />
-                  </audio>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+            {/* آیتم‌های داخل گروه */}
+            {isOpen && (
+              <ul className="list-group mt-2">
+                {groupedItems[group].map((item) => (
+                  <li key={item.id} className="list-group-item py-1">
+                    {item.text ||
+                      item.guideCategoryName ||
+                      item.rewardCategoryName ||
+                      "بدون عنوان"}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };
 
+// ---------------------------
+// ✅ کامپوننت اصلی روند
+// ---------------------------
 export default function Ravand() {
   const [isOpen, setIsOpen] = useState(false);
   const [voices, setVoices] = useState([]);
   const [sentences, setSentences] = useState([]);
-  const [canvasItems, setCanvasItems] = useState([]); // ✅ فقط یک لیست
+  const [canvasGroups, setCanvasGroups] = useState([]); // گروه‌ها در Canvas
   const [trendName, setTrendName] = useState("");
   const [trendType, setTrendType] = useState(0);
 
@@ -91,43 +113,73 @@ export default function Ravand() {
     };
   }, []);
 
-  // ===== Drag از سمت چپ =====
-  const handleDragItem = (items, type, e) => {
-    const withUid = items.map((i) => ({
+  // ===== Drag گروه از سمت چپ =====
+const handleDragGroup = (groupName, groupItems, sourceTitle, e) => {
+  const itemType =
+    sourceTitle === "Sentences"
+      ? "Sentence"
+      : sourceTitle === "Voices"
+      ? "Guide"
+      : "Unknown";
+
+  const advanceCategoryId =
+    itemType === "Sentence" && groupItems.length > 0
+      ? groupItems[0].advanceCategoryId
+      : null;
+
+  const group = {
+    id: Date.now() + Math.random(),
+    name: groupName,
+    type: itemType,
+    items: groupItems.map((i) => ({
       ...i,
       uid: Date.now() + Math.random(),
-      itemType: type === "Voices" ? "Guide" : "Sentence",
-    }));
-    e.dataTransfer.setData("items", JSON.stringify(withUid));
+      itemType,
+      advanceCategoryId,
+    })),
+    isOpen: true,
   };
 
-  // ===== Drop روی کانواس =====
+  e.dataTransfer.setData("group", JSON.stringify(group)); // 👈 مثل قبل
+};
+
+  // ===== Drop روی Canvas =====
   const handleDrop = (e) => {
     e.preventDefault();
-    const data = e.dataTransfer.getData("items");
+    const data = e.dataTransfer.getData("group");
     if (!data) return;
-    const items = JSON.parse(data);
-    setCanvasItems((prev) => [...prev, ...items]);
+    const group = JSON.parse(data);
+    setCanvasGroups((prev) => [...prev, group]);
   };
 
-  // ===== حذف آیتم =====
-  const removeItem = (uid) => {
-    setCanvasItems((prev) => prev.filter((i) => i.uid !== uid));
+  // ===== Drag بین گروه‌ها =====
+  const handleGroupDragStart = (e, index) => {
+    e.dataTransfer.setData("dragGroupIndex", index);
   };
 
-  // ===== Drag & Drop داخلی =====
-  const handleDragStart = (e, index) => {
-    e.dataTransfer.setData("dragIndex", index);
-  };
-
-  const handleDropReorder = (e, index) => {
+  const handleGroupDrop = (e, index) => {
     e.preventDefault();
-    const dragIndex = e.dataTransfer.getData("dragIndex");
+    const dragIndex = e.dataTransfer.getData("dragGroupIndex");
     if (dragIndex === null) return;
-    const updated = [...canvasItems];
+
+    const updated = [...canvasGroups];
     const [moved] = updated.splice(dragIndex, 1);
     updated.splice(index, 0, moved);
-    setCanvasItems(updated);
+    setCanvasGroups(updated);
+  };
+
+  // ===== حذف گروه از Canvas =====
+  const removeGroup = (id) => {
+    setCanvasGroups((prev) => prev.filter((g) => g.id !== id));
+  };
+
+  // ===== باز و بسته کردن گروه در Canvas =====
+  const toggleGroupOpen = (id) => {
+    setCanvasGroups((prev) =>
+      prev.map((g) =>
+        g.id === id ? { ...g, isOpen: !g.isOpen } : g
+      )
+    );
   };
 
   // ===== ذخیره روند =====
@@ -137,23 +189,25 @@ export default function Ravand() {
       return;
     }
 
-    // 🔹 جدا کردن آیتم‌ها بر اساس نوع‌شان
-    const guides = canvasItems
-      .filter((i) => i.itemType === "Guide")
-      .map((v, index) => ({
-        GuideId: v.id,
-        Order: index + 1,
-      }));
-
-    const sentencesList = canvasItems
+    const allItems = canvasGroups.flatMap((g) => g.items);
+    console.log(allItems);    
+const guides = allItems
+  .filter((i) => i.itemType === "Guide")
+  .map((v, index) => ({
+    GuideId: v.id,
+    Order: index + 1,
+    GuideCategoryId: v.guideCategoryId, // 🔹 اضافه شد
+  }));
+    const sentencesList = allItems
       .filter((i) => i.itemType === "Sentence")
       .map((s, index) => ({
         SentenceId: s.id,
         Order: index + 1,
+        AdvanceCategoryId: s.advanceCategoryId, // 🔹 اضافه شد
       }));
 
     const firstSentence = sentencesList.length
-      ? canvasItems.find((i) => i.itemType === "Sentence")
+      ? allItems.find((i) => i.itemType === "Sentence")
       : null;
     const advanceCategoryId = firstSentence
       ? firstSentence.advanceCategoryId
@@ -173,16 +227,21 @@ export default function Ravand() {
     };
 
     try {
+      console.log(payload);
+      
       await api.post("trends", payload);
       alert("روند با موفقیت ذخیره شد!");
-      setCanvasItems([]);
+      setCanvasGroups([]);
       setTrendName("");
     } catch (err) {
-  console.error("خطای ذخیره روند:", err.response?.data || err.message);
-  alert("خطا در ذخیره روند!");
+      console.error("خطای ذخیره روند:", err.response?.data || err.message);
+      alert("خطا در ذخیره روند!");
     }
   };
 
+  // ---------------------------
+  // 🔹 رندر
+  // ---------------------------
   return (
     <div className="container mt-2">
       <button
@@ -194,33 +253,30 @@ export default function Ravand() {
 
       {isOpen && (
         <div className="row bg-light border border-secondary p-3 rounded mt-2 mx-0">
-          {/* لیست آیتم‌های سمت چپ */}
+          {/* سمت چپ: لیست گروه‌ها */}
           <div className="col-md-4">
             <ItemList
               title="Voices"
               items={voices}
-              onDragItem={(items, group, e) =>
-                handleDragItem(items, "Voices", e)
-              }
+              onDragGroup={handleDragGroup}
             />
             <ItemList
               title="Sentences"
               items={sentences}
-              onDragItem={(items, group, e) =>
-                handleDragItem(items, "Sentences", e)
-              }
+              onDragGroup={handleDragGroup}
             />
           </div>
 
-          {/* Canvas */}
+          {/* سمت راست: Canvas */}
           <div
             className="col-md-8 border p-3"
             style={{ minHeight: "500px" }}
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
           >
-            <h5>Canvas (لیست خطی)</h5>
+            <h5>Canvas (گروه‌ها)</h5>
 
+            {/* فرم ذخیره روند */}
             <div className="mb-3">
               <input
                 type="text"
@@ -233,7 +289,7 @@ export default function Ravand() {
                 className="form-control mt-2"
                 onChange={(e) => setTrendType(e.target.value)}
               >
-                <option value={0}>لطفا نوع روند را انتخاب کنید</option>
+                <option value={0}>نوع روند را انتخاب کنید</option>
                 <option value={1}>مرور</option>
                 <option value={2}>آزمون</option>
               </select>
@@ -242,37 +298,62 @@ export default function Ravand() {
               </button>
             </div>
 
-            {canvasItems.length === 0 ? (
-              <div className="text-muted">آیتمی اضافه نشده است</div>
+            {/* گروه‌های Canvas */}
+            {canvasGroups.length === 0 ? (
+              <div className="text-muted">هیچ گروهی اضافه نشده است</div>
             ) : (
-              <ul className="list-group">
-                {canvasItems.map((item, index) => (
-                  <li
-                    key={item.uid}
-                    className="list-group-item d-flex justify-content-between align-items-center"
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, index)}
-                    onDrop={(e) => handleDropReorder(e, index)}
-                    onDragOver={(e) => e.preventDefault()}
+              canvasGroups.map((group, index) => (
+                <div
+                  key={group.id}
+                  className="border rounded p-2 mb-3 bg-white"
+                  draggable
+                  onDragStart={(e) => handleGroupDragStart(e, index)}
+                  onDrop={(e) => handleGroupDrop(e, index)}
+                  onDragOver={(e) => e.preventDefault()}
+                >
+                  <div
+                    className="d-flex justify-content-between align-items-center"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => toggleGroupOpen(group.id)}
                   >
-                    <span>
-                      {item.text ||
-                        item.guideCategoryName ||
-                        item.rewardCategoryName ||
-                        "بدون عنوان"}{" "}
+                    <h6 className="mb-0">
+                      <i
+                        className={`bi ${
+                          group.isOpen
+                            ? "bi-chevron-down"
+                            : "bi-chevron-right"
+                        } me-1`}
+                      ></i>
+                      {group.name}{" "}
                       <small className="text-muted">
-                        ({item.itemType === "Guide" ? "راهنما" : "جمله"})
+                        ({group.type === "Guide" ? "راهنما" : "جمله"})
                       </small>
-                    </span>
+                    </h6>
                     <button
                       className="btn btn-sm btn-danger"
-                      onClick={() => removeItem(item.uid)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeGroup(group.id);
+                      }}
                     >
                       ×
                     </button>
-                  </li>
-                ))}
-              </ul>
+                  </div>
+
+                  {group.isOpen && (
+                    <ul className="list-group mt-2">
+                      {group.items.map((item) => (
+                        <li key={item.uid} className="list-group-item py-1">
+                          {item.text ||
+                            item.guideCategoryName ||
+                            item.rewardCategoryName ||
+                            "بدون عنوان"}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))
             )}
           </div>
         </div>

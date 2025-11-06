@@ -3,24 +3,23 @@ import api from "../api/axios";
 
 export default function MyPositionColumn({ onSelect, editSelected }) {
   const [items, setItems] = useState([]);
-  const [selectedItems, setSelectedItems] = useState([]); // آیتم‌های انتخاب‌شده
+  const [selectedItem, setSelectedItem] = useState(null); // ✅ فقط یکی انتخاب میشه
   const [inputValue, setInputValue] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [loading, setLoading] = useState(true);
-  const [disabled, setDisabled] = useState(false); // برای غیرفعال کردن ستون هنگام ادیت
+  const [disabled, setDisabled] = useState(false);
 
   useEffect(() => {
     fetchItems();
   }, []);
 
-  // وقتی editSelected تغییر کرد، تیک‌ها را آپدیت کن
   useEffect(() => {
     if (editSelected && editSelected.length > 0) {
-      setSelectedItems(editSelected);
-      setDisabled(true); // در حالت ادیت، غیرفعال کردن ستون‌های دیگر از والد مدیریت می‌شود
-      if (onSelect) onSelect(editSelected);
+      setSelectedItem(editSelected[0]); // ✅ چون فقط یکی باید انتخاب شه
+      setDisabled(true);
+      if (onSelect) onSelect(editSelected[0]);
     } else {
-      setSelectedItems([]);
+      setSelectedItem(null);
       setDisabled(false);
     }
   }, [editSelected]);
@@ -51,18 +50,10 @@ export default function MyPositionColumn({ onSelect, editSelected }) {
     }
   };
 
-  const toggleSelect = (item, checked) => {
-    let updated;
-    if (checked) {
-      updated = [...selectedItems, item];
-    } else {
-      updated = selectedItems.filter(i => i.id !== item.id);
-    }
-    setSelectedItems(updated);
-
-    if (onSelect) {
-      onSelect(updated);
-    }
+  // ✅ فقط یکی قابل انتخاب است
+  const handleSelect = (item) => {
+    setSelectedItem(item);
+    if (onSelect) onSelect(item);
   };
 
   const filteredItems = items.filter(item =>
@@ -80,7 +71,7 @@ export default function MyPositionColumn({ onSelect, editSelected }) {
             placeholder="افزودن آیتم جدید"
             value={inputValue}
             onChange={e => setInputValue(e.target.value)}
-            disabled={disabled} // غیرفعال هنگام ادیت
+            disabled={disabled}
           />
           <button className="btn btn-success" onClick={handleAdd} disabled={disabled}>
             +
@@ -111,10 +102,11 @@ export default function MyPositionColumn({ onSelect, editSelected }) {
               >
                 <div className="d-flex align-items-center">
                   <input
-                    type="checkbox"
+                    type="radio"
+                    name="mainCategory" // ✅ لازم برای رفتار تک‌انتخابی
                     className="me-2"
-                    checked={selectedItems.some(i => i.id === item.id)}
-                    onChange={e => toggleSelect(item, e.target.checked)}
+                    checked={selectedItem?.id === item.id}
+                    onChange={() => handleSelect(item)}
                     disabled={disabled}
                   />
                   <span>{item.title}</span>

@@ -12,12 +12,14 @@ export default function App() {
   return (
     // <Layout/>
     
-    /* <AdvanceCategory/>
+    <>
+    <VerticalTimeline/>
+    <AdvanceCategory/>
     <SentencesTable/>
     <GuideTypesTable/>
     <GuideManager/>
-    <Ravand/> */
-    <VerticalTimeline/>
+    <Ravand/> 
+    </>
     
   )
 }

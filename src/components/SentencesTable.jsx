@@ -178,7 +178,7 @@ setTimeout(() => setIsOpen(true), 1);
             onChange={(e) => setSubcategoryId(e.target.value)}
           >
             <option value="">انتخاب کنید...</option>
-            {subcategories.map((s) => (
+            {subcategories.filter(s => !s.isDeleted).map((s) => (
               <option key={s.id} value={s.id}>
                 {s.title}
               </option>

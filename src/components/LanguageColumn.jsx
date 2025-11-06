@@ -3,7 +3,7 @@ import api from "../api/axios";
 
 export default function LanguageColumn({ onSelect, editSelected }) {
   const [items, setItems] = useState([]);
-  const [selectedItems, setSelectedItems] = useState([]);
+  const [selectedItem, setSelectedItem] = useState(null);
   const [inputValue, setInputValue] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [loading, setLoading] = useState(true);
@@ -13,14 +13,14 @@ export default function LanguageColumn({ onSelect, editSelected }) {
     fetchItems();
   }, []);
 
-  // همگام‌سازی تیک‌ها هنگام ادیت
+  // همگام‌سازی انتخاب در حالت ویرایش
   useEffect(() => {
-    if (editSelected && editSelected.length > 0) {
-      setSelectedItems(editSelected);
-      setDisabled(true); // غیر فعال کردن input و چک‌باکس‌ها
+    if (editSelected) {
+      setSelectedItem(editSelected);
+      setDisabled(true);
       if (onSelect) onSelect(editSelected);
     } else {
-      setSelectedItems([]);
+      setSelectedItem(null);
       setDisabled(false);
     }
   }, [editSelected]);
@@ -65,15 +65,9 @@ export default function LanguageColumn({ onSelect, editSelected }) {
     }
   };
 
-  const toggleSelect = (item, checked) => {
-    let updated;
-    if (checked) {
-      updated = [...selectedItems, item];
-    } else {
-      updated = selectedItems.filter(i => i.id !== item.id);
-    }
-    setSelectedItems(updated);
-    if (onSelect) onSelect(updated);
+  const handleSelect = (item) => {
+    setSelectedItem(item);
+    if (onSelect) onSelect(item);
   };
 
   const filteredItems = items.filter(item =>
@@ -120,13 +114,14 @@ export default function LanguageColumn({ onSelect, editSelected }) {
                 key={item.id}
                 className="list-group-item d-flex align-items-center justify-content-between"
               >
-                {/* چک‌باکس */}
+                {/* رادیوباتن */}
                 <div className="d-flex align-items-center">
                   <input
-                    type="checkbox"
+                    type="radio"
+                    name="language"
                     className="form-check-input me-2"
-                    checked={selectedItems.some(i => i.id === item.id)}
-                    onChange={e => toggleSelect(item, e.target.checked)}
+                    checked={selectedItem?.id === item.id}
+                    onChange={() => handleSelect(item)}
                     disabled={disabled}
                   />
                   <span>{item.title}</span>

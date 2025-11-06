@@ -182,7 +182,7 @@ useEffect(() => {
                 onClick={() => handleToggle(category)}
                 className="w-100 text-end p-2"
               >
-                {category} ({groupedData[category].length}) {openCategories[category] ? "▲" : "▼"}
+                {category} ({groupedData[category].filter(x=>!x.isDeleted).length}) {openCategories[category] ? "▲" : "▼"}
               </Button>
 
               <Collapse in={openCategories[category]}>
@@ -198,7 +198,7 @@ useEffect(() => {
                       </tr>
                     </thead>
                     <tbody>
-                      {groupedData[category].map((g, i) => (
+                      {groupedData[category].filter(s=>!s.isDeleted).map((g, i) => (
                         <tr key={g.id}>
                           <td>{i + 1}</td>
                           <td>

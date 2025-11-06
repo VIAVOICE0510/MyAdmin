@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import api from "../api/axios";
 
-export default function PackageTypeColumn({ onSelect, editSelected }) {
+export default function NeedColumn({ onSelect, editSelected }) {
   const [items, setItems] = useState([]);
-  const [selectedItems, setSelectedItems] = useState([]);
+  const [selectedItem, setSelectedItem] = useState(null);
   const [inputValue, setInputValue] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [loading, setLoading] = useState(true);
@@ -13,14 +13,14 @@ export default function PackageTypeColumn({ onSelect, editSelected }) {
     fetchItems();
   }, []);
 
-  // همگام‌سازی با ادیت والد
+  // همگام‌سازی با حالت ویرایش
   useEffect(() => {
-    if (editSelected && editSelected.length > 0) {
-      setSelectedItems(editSelected);
+    if (editSelected) {
+      setSelectedItem(editSelected);
       setDisabled(true);
       if (onSelect) onSelect(editSelected);
     } else {
-      setSelectedItems([]);
+      setSelectedItem(null);
       setDisabled(false);
     }
   }, [editSelected]);
@@ -28,7 +28,7 @@ export default function PackageTypeColumn({ onSelect, editSelected }) {
   const fetchItems = async () => {
     try {
       setLoading(true);
-      const { data } = await api.get("PackageType/all");
+      const { data } = await api.get("packageType/all");
       setItems(data);
     } catch (error) {
       console.error("❌ Fetch Error:", error.response?.data || error);
@@ -42,7 +42,7 @@ export default function PackageTypeColumn({ onSelect, editSelected }) {
     const val = inputValue.trim();
     if (!val) return alert("عنوان نیاز نمی‌تواند خالی باشد!");
     try {
-      await api.post("PackageType", { title: val });
+      await api.post("packageType", { title: val });
       setInputValue("");
       fetchItems();
     } catch (error) {
@@ -54,7 +54,7 @@ export default function PackageTypeColumn({ onSelect, editSelected }) {
   const handleEdit = async (id, newTitle) => {
     if (!newTitle.trim()) return;
     try {
-      await api.post("PackageType/edit", { id, title: newTitle });
+      await api.post("packageType/edit", { id, title: newTitle });
       setItems(prev =>
         prev.map(item => (item.id === id ? { ...item, title: newTitle } : item))
       );
@@ -64,15 +64,9 @@ export default function PackageTypeColumn({ onSelect, editSelected }) {
     }
   };
 
-  const toggleSelect = (item, checked) => {
-    let updated;
-    if (checked) {
-      updated = [...selectedItems, item];
-    } else {
-      updated = selectedItems.filter(i => i.id !== item.id);
-    }
-    setSelectedItems(updated);
-    if (onSelect) onSelect(updated);
+  const handleSelect = (item) => {
+    setSelectedItem(item);
+    if (onSelect) onSelect(item);
   };
 
   const filteredItems = items.filter(item =>
@@ -82,7 +76,7 @@ export default function PackageTypeColumn({ onSelect, editSelected }) {
   return (
     <td>
       <div className="mb-3">
-        {/* افزودن آیتم جدید */}
+        {/* افزودن نیاز جدید */}
         <div className="d-flex mb-2">
           <input
             type="text"
@@ -119,17 +113,20 @@ export default function PackageTypeColumn({ onSelect, editSelected }) {
                 key={item.id}
                 className="list-group-item d-flex align-items-center justify-content-between"
               >
+                {/* رادیوباتن انتخاب نیاز */}
                 <div className="d-flex align-items-center">
                   <input
-                    type="checkbox"
+                    type="radio"
+                    name="need"
                     className="form-check-input me-2"
-                    checked={selectedItems.some(i => i.id === item.id)}
-                    onChange={e => toggleSelect(item, e.target.checked)}
+                    checked={selectedItem?.id === item.id}
+                    onChange={() => handleSelect(item)}
                     disabled={disabled}
                   />
                   <span>{item.title}</span>
                 </div>
 
+                {/* ویرایش نیاز */}
                 <button
                   className="btn btn-sm btn-warning"
                   onClick={() => {

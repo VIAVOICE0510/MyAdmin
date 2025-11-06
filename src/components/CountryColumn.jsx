@@ -3,7 +3,7 @@ import api from "../api/axios";
 
 export default function CountryColumn({ onSelect, editSelected }) {
   const [items, setItems] = useState([]);
-  const [selectedItems, setSelectedItems] = useState([]);
+  const [selectedItem, setSelectedItem] = useState(null);
   const [inputValue, setInputValue] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [loading, setLoading] = useState(true);
@@ -13,14 +13,14 @@ export default function CountryColumn({ onSelect, editSelected }) {
     fetchItems();
   }, []);
 
-  // همگام‌سازی تیک‌ها هنگام ادیت
+  // همگام‌سازی انتخاب هنگام ادیت
   useEffect(() => {
-    if (editSelected && editSelected.length > 0) {
-      setSelectedItems(editSelected);
-      setDisabled(true); // غیر فعال کردن input و چک‌باکس‌ها
+    if (editSelected) {
+      setSelectedItem(editSelected);
+      setDisabled(true);
       if (onSelect) onSelect(editSelected);
     } else {
-      setSelectedItems([]);
+      setSelectedItem(null);
       setDisabled(false);
     }
   }, [editSelected]);
@@ -52,18 +52,12 @@ export default function CountryColumn({ onSelect, editSelected }) {
     }
   };
 
-  const toggleSelect = (item, checked) => {
-    let updated;
-    if (checked) {
-      updated = [...selectedItems, item];
-    } else {
-      updated = selectedItems.filter(i => i.id !== item.id);
-    }
-    setSelectedItems(updated);
-    if (onSelect) onSelect(updated);
+  const handleSelect = (item) => {
+    setSelectedItem(item);
+    if (onSelect) onSelect(item);
   };
 
-  const filteredItems = items.filter(item =>
+  const filteredItems = items.filter((item) =>
     item.title.toLowerCase().includes(searchValue.toLowerCase())
   );
 
@@ -108,10 +102,11 @@ export default function CountryColumn({ onSelect, editSelected }) {
             >
               <div className="d-flex align-items-center">
                 <input
-                  type="checkbox"
+                  type="radio"
+                  name="country"
                   className="form-check-input me-2"
-                  checked={selectedItems.some(i => i.id === item.id)}
-                  onChange={e => toggleSelect(item, e.target.checked)}
+                  checked={selectedItem?.id === item.id}
+                  onChange={() => handleSelect(item)}
                   disabled={disabled}
                 />
                 <span>{item.title}</span>

@@ -10,13 +10,13 @@ import { emit } from "../eventBus";
 
 export default function AdvanceCategoryDropdown() {
   const [isOpen, setIsOpen] = useState(false); // وضعیت باز/بسته بودن
-  const [selectedItems, setSelectedItems] = useState({
-    MyPosition: [],
-    Country: [],
-    Language: [],
-    Activity: [],
-    Need: [],
-  });
+const [selectedItems, setSelectedItems] = useState({
+  MyPosition: null,
+  Country: null,
+  Language: null,
+  Activity: null,
+  Need: null,
+});
 
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
@@ -35,22 +35,23 @@ export default function AdvanceCategoryDropdown() {
     }
   };
 
-  const handleSelect = (column, items) => {
-    setSelectedItems((prev) => ({
-      ...prev,
-      [column]: items,
-    }));
-  };
+const handleSelect = (column, item) => {
+  setSelectedItems((prev) => ({
+    ...prev,
+    [column]: item,
+  }));
+};
+
 
   const handleSave = async () => {
     try {
       setLoading(true);
 
-      const mainCategoryId = selectedItems.MyPosition[0]?.id ?? null;
-      const countryId = selectedItems.Country[0]?.id ?? null;
-      const languageId = selectedItems.Language[0]?.id ?? null;
-      const packageId = selectedItems.Activity[0]?.id ?? null;
-      const packageTypeId = selectedItems.Need[0]?.id ?? null;
+const mainCategoryId = selectedItems.MyPosition?.id ?? null;
+const countryId = selectedItems.Country?.id ?? null;
+const languageId = selectedItems.Language?.id ?? null;
+const packageId = selectedItems.Activity?.id ?? null;
+const packageTypeId = selectedItems.Need?.id ?? null;
 
       if (!mainCategoryId || !countryId || !languageId || !packageId || !packageTypeId) {
         alert("لطفاً تمام ستون‌ها را انتخاب کنید.");
@@ -67,11 +68,11 @@ export default function AdvanceCategoryDropdown() {
         secondUnderPackageTypeId: null,
         thirdUnderPackageTypeId: null,
         title: [
-          selectedItems.MyPosition[0].title,
-          selectedItems.Country[0].title,
-          selectedItems.Language[0].title,
-          selectedItems.Activity[0].title,
-          selectedItems.Need[0].title,
+          selectedItems.MyPosition.title,
+          selectedItems.Country.title,
+          selectedItems.Language.title,
+          selectedItems.Activity.title,
+          selectedItems.Need.title,
         ].join(" - "),
       };
       if (editingId) {
@@ -107,8 +108,10 @@ export default function AdvanceCategoryDropdown() {
     try {
       if (cat.isDeleted) {
         await api.post(`AdvanceCategory/activate/${cat.id}`);
+        emit("categoryCreated");
       } else {
         await api.post(`AdvanceCategory/unactivate/${cat.id}`);
+        emit("categoryCreated");
       }
       fetchCategories();
     } catch (error) {
@@ -140,11 +143,11 @@ export default function AdvanceCategoryDropdown() {
   };
 
   const generatedTitle = [
-    selectedItems.MyPosition[0]?.title,
-    selectedItems.Country[0]?.title,
-    selectedItems.Language[0]?.title,
-    selectedItems.Activity[0]?.title,
-    selectedItems.Need[0]?.title,
+    selectedItems.MyPosition?.title,
+    selectedItems.Country?.title,
+    selectedItems.Language?.title,
+    selectedItems.Activity?.title,
+    selectedItems.Need?.title,
   ]
     .filter(Boolean)
     .join(" - ");
@@ -178,27 +181,27 @@ export default function AdvanceCategoryDropdown() {
               <tr>
                 <MyPositionColumn
                   selected={selectedItems.MyPosition}
-                  onSelect={(items) => handleSelect("MyPosition", items)}
+                  onSelect={(item) => handleSelect("MyPosition", item)}
                   disabled={editingId !== null}
                 />
                 <CountryColumn
                   selected={selectedItems.Country}
-                  onSelect={(items) => handleSelect("Country", items)}
+                  onSelect={(item) => handleSelect("Country", item)}
                   disabled={editingId !== null}
                 />
                 <LanguageColumn
                   selected={selectedItems.Language}
-                  onSelect={(items) => handleSelect("Language", items)}
+                  onSelect={(item) => handleSelect("Language", item)}
                   disabled={editingId !== null}
                 />
                 <ActivityColumn
                   selected={selectedItems.Activity}
-                  onSelect={(items) => handleSelect("Activity", items)}
+                  onSelect={(item) => handleSelect("Activity", item)}
                   disabled={editingId !== null}
                 />
                 <NeedColumn
                   selected={selectedItems.Need}
-                  onSelect={(items) => handleSelect("Need", items)}
+                  onSelect={(item) => handleSelect("Need", item)}
                   disabled={editingId !== null}
                 />
               </tr>

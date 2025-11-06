@@ -7,24 +7,27 @@ import api from "./api/axios";
 export default function VerticalTimeline() {
   const timelineRef = useRef(null);
   const timeline = useRef(null);
-  const [trendSentences, setTrendSentences] = useState([]);
-  const [trendGuides, setTrendGuides] = useState([]);
-  const [currentSentence, setCurrentSentence] = useState("");
   const items = useRef(new DataSet());
 
+  const [trendGroups, setTrendGroups] = useState({
+    guides: [],      // آرایه ویس‌ها
+    sentences: []    // آرایه جملات
+  });
+  const [currentSentence, setCurrentSentence] = useState("");
+
   useEffect(() => {
-    // 🟦 گرفتن روند از API
-    api
-      .get("trends/19")
+    api.get("trends/26")
       .then((res) => {
         if (res.data) {
-          setTrendSentences(res.data.sentences || []);
-          setTrendGuides(res.data.guides || []);
+          // console.log(res.data);
+          setTrendGroups({
+            guides: res.data.guides || [],
+            sentences: res.data.sentences || []
+          });
         }
       })
       .catch((err) => console.error(err));
 
-    // 🟦 ایجاد تایم‌لاین
     const options = {
       orientation: { axis: "vertical", item: "center" },
       zoomable: true,
@@ -35,12 +38,11 @@ export default function VerticalTimeline() {
       maxHeight: "100%",
       margin: { item: 20, axis: 40 },
       editable: false,
-      multiselect: false,
+      multiselect: false
     };
 
     timeline.current = new Timeline(timelineRef.current, items.current, options);
 
-    // ✳️ استایل‌ها
     const style = document.createElement("style");
     style.innerHTML = `
       .vis-time-axis .vis-grid { display: none !important; }
@@ -54,66 +56,66 @@ export default function VerticalTimeline() {
     return () => timeline.current?.destroy();
   }, []);
 
-  // 🟦 تابع خواندن جمله
   const speakSentence = (sentence, callback) => {
-    if (!sentence) {
-      callback && callback();
-      return;
-    }
-
+    if (!sentence) { callback && callback(); return; }
     const utterance = new SpeechSynthesisUtterance(sentence);
     utterance.lang = "en-US";
     utterance.rate = 1;
-    utterance.onend = () => {
-      callback && callback();
-    };
-
+    utterance.onend = () => callback && callback();
     window.speechSynthesis.speak(utterance);
   };
 
-  // 🟦 شروع پخش روند
-  const startTrend = () => {
-    let index = 0;
-
-    const playNext = () => {
-      if (index >= trendSentences.length) return; // پایان روند
-
-      const voiceUrl = trendGuides[index];
-
-      // 1️⃣ پخش ویس
-      if (voiceUrl) {
-        const audio = new Audio(`https://totivar.com/${voiceUrl}`);
-        audio.play();
-        audio.onended = () => showSentence();
-      } else {
-        showSentence();
-      }
-
-      // 2️⃣ نمایش و خواندن جمله
-      function showSentence() {
-        const sentence = trendSentences[index];
-        setCurrentSentence(sentence);
-
-        speakSentence(sentence, () => {
-          items.current.add({
-            id: Date.now(),
-            content: sentence,
-            start: new Date(),
-          });
-          timeline.current.moveTo(new Date());
-
-          index++;
-          setTimeout(playNext, 5000); // فاصله ۵ ثانیه بین جملات
-        });
-      }
-    };
-
-    playNext();
+  const playVoice = (url, callback) => {
+    if (!url) { callback && callback(); return; }
+    const audio = new Audio(`https://totivar.com/${url}`);
+    audio.play();
+    audio.onended = callback;
   };
 
+const startTrend = () => {
+  const { guides, sentences } = trendGroups;
+  if (!guides.length && !sentences.length) return;
+
+  // روند فقط به اندازه جملات ادامه دارد
+  const totalSteps = sentences.length;
+
+  let step = 0;
+
+  const playNext = () => {
+    if (step >= totalSteps)
+    {
+      alert("پایان روند");
+      return; // ✅ وقتی همه جملات تموم شدن، روند متوقف میشه
+    }
+
+    const currentVoice = guides[step % guides.length];      
+    const currentSentenceObj = sentences[step]; // ✅ هر بار جمله به ترتیب خودش
+
+    // 1️⃣ پخش ویس
+    playVoice(currentVoice?.guideAddress, () => {
+      // 2️⃣ نمایش و خواندن جمله
+      setCurrentSentence(currentSentenceObj?.sentenceText || "");
+      
+      speakSentence(currentSentenceObj?.sentenceText || "", () => {
+        items.current.add({
+          id: Date.now(),
+          content: currentSentenceObj?.sentenceText || "",
+          start: new Date(),
+        });
+        timeline.current.moveTo(new Date());
+
+        step++;
+        setTimeout(playNext, 300); // فاصله بین مراحل
+      });
+    });
+  };
+
+  playNext();
+};
+
+
   return (
-    <div>
-      {/* تایم لاین */}
+    <div className="mt-4">
       <div
         ref={timelineRef}
         style={{
@@ -127,13 +129,9 @@ export default function VerticalTimeline() {
           zIndex: 10,
         }}
       />
-
-      {/* جمله فعلی */}
       <div style={{ marginLeft: "370px", marginTop: "20px", fontSize: "20px" }}>
         {currentSentence}
       </div>
-
-      {/* دکمه شروع روند */}
       <button
         className="btn btn-primary mt-3"
         onClick={startTrend}

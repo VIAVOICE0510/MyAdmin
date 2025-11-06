@@ -3,7 +3,7 @@ import api from "../api/axios";
 
 export default function ActivityColumn({ onSelect, editSelected }) {
   const [items, setItems] = useState([]);
-  const [selectedItems, setSelectedItems] = useState([]);
+  const [selectedItem, setSelectedItem] = useState(null);
   const [inputValue, setInputValue] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [loading, setLoading] = useState(true);
@@ -13,14 +13,14 @@ export default function ActivityColumn({ onSelect, editSelected }) {
     fetchItems();
   }, []);
 
-  // همگام‌سازی با ادیت والد
+  // همگام‌سازی انتخاب در حالت ادیت
   useEffect(() => {
-    if (editSelected && editSelected.length > 0) {
-      setSelectedItems(editSelected);
+    if (editSelected) {
+      setSelectedItem(editSelected);
       setDisabled(true);
       if (onSelect) onSelect(editSelected);
     } else {
-      setSelectedItems([]);
+      setSelectedItem(null);
       setDisabled(false);
     }
   }, [editSelected]);
@@ -28,7 +28,7 @@ export default function ActivityColumn({ onSelect, editSelected }) {
   const fetchItems = async () => {
     try {
       setLoading(true);
-      const { data } = await api.get("Package/all");
+      const { data } = await api.get("package/all");
       setItems(data);
     } catch (error) {
       console.error("❌ Fetch Error:", error.response?.data || error);
@@ -41,8 +41,9 @@ export default function ActivityColumn({ onSelect, editSelected }) {
   const handleAdd = async () => {
     const val = inputValue.trim();
     if (!val) return alert("عنوان فعالیت نمی‌تواند خالی باشد!");
+
     try {
-      await api.post("Package", { title: val });
+      await api.post("package", { title: val });
       setInputValue("");
       fetchItems();
     } catch (error) {
@@ -54,7 +55,7 @@ export default function ActivityColumn({ onSelect, editSelected }) {
   const handleEdit = async (id, newTitle) => {
     if (!newTitle.trim()) return;
     try {
-      await api.post("Package/edit", { id, title: newTitle });
+      await api.post("package/edit", { id, title: newTitle });
       setItems(prev =>
         prev.map(item => (item.id === id ? { ...item, title: newTitle } : item))
       );
@@ -64,15 +65,9 @@ export default function ActivityColumn({ onSelect, editSelected }) {
     }
   };
 
-  const toggleSelect = (item, checked) => {
-    let updated;
-    if (checked) {
-      updated = [...selectedItems, item];
-    } else {
-      updated = selectedItems.filter(i => i.id !== item.id);
-    }
-    setSelectedItems(updated);
-    if (onSelect) onSelect(updated);
+  const handleSelect = (item) => {
+    setSelectedItem(item);
+    if (onSelect) onSelect(item);
   };
 
   const filteredItems = items.filter(item =>
@@ -82,7 +77,7 @@ export default function ActivityColumn({ onSelect, editSelected }) {
   return (
     <td>
       <div className="mb-3">
-        {/* افزودن آیتم جدید */}
+        {/* افزودن */}
         <div className="d-flex mb-2">
           <input
             type="text"
@@ -119,22 +114,25 @@ export default function ActivityColumn({ onSelect, editSelected }) {
                 key={item.id}
                 className="list-group-item d-flex align-items-center justify-content-between"
               >
+                {/* رادیوباتن */}
                 <div className="d-flex align-items-center">
                   <input
-                    type="checkbox"
+                    type="radio"
+                    name="activity"
                     className="form-check-input me-2"
-                    checked={selectedItems.some(i => i.id === item.id)}
-                    onChange={e => toggleSelect(item, e.target.checked)}
+                    checked={selectedItem?.id === item.id}
+                    onChange={() => handleSelect(item)}
                     disabled={disabled}
                   />
                   <span>{item.title}</span>
                 </div>
 
+                {/* ویرایش */}
                 <button
                   className="btn btn-sm btn-warning"
                   onClick={() => {
                     const newTitle = prompt("عنوان جدید را وارد کنید:", item.title);
-                    if (!newTitle || !newTitle.trim()) return;
+                    if (!newTitle || newTitle.trim() === "") return;
                     handleEdit(item.id, newTitle);
                   }}
                   disabled={disabled}
